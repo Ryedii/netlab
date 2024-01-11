@@ -6,60 +6,60 @@ ByteStream::ByteStream( uint64_t capacity ) : capacity_( capacity ) {}
 
 bool Writer::is_closed() const
 {
-  // Your code here.
-  return {};
+  return is_closed_;
 }
 
 void Writer::push( string data )
 {
-  // Your code here.
-  (void)data;
-  return;
+  if ( has_error() || is_closed() ) {
+    return;
+  }
+  uint64_t len = std::min( data.size(), available_capacity() );
+  buffer_.append( data.substr( 0, len ) );
+  bytes_pushed_size_ += len;
 }
 
 void Writer::close()
 {
-  // Your code here.
+  is_closed_ = true;
 }
 
 uint64_t Writer::available_capacity() const
 {
-  // Your code here.
-  return {};
+  return capacity_ - ( bytes_pushed_size_ - bytes_popped_size_ );
 }
 
 uint64_t Writer::bytes_pushed() const
 {
-  // Your code here.
-  return {};
+  return bytes_pushed_size_;
 }
 
 bool Reader::is_finished() const
 {
-  // Your code here.
-  return {};
+  return is_closed_ && bytes_buffered() == 0;
 }
 
 uint64_t Reader::bytes_popped() const
 {
-  // Your code here.
-  return {};
+  return bytes_popped_size_;
 }
 
 string_view Reader::peek() const
 {
-  // Your code here.
-  return {};
+  return this->buffer_;
 }
 
 void Reader::pop( uint64_t len )
 {
-  // Your code here.
-  (void)len;
+  if ( has_error() ) {
+    return;
+  }
+  len = std::min( len, bytes_buffered() );
+  buffer_.erase( 0, len );
+  bytes_popped_size_ += len;
 }
 
 uint64_t Reader::bytes_buffered() const
 {
-  // Your code here.
-  return {};
+  return bytes_pushed_size_ - bytes_popped_size_;
 }
