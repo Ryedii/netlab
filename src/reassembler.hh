@@ -1,6 +1,7 @@
 #pragma once
 
 #include "byte_stream.hh"
+#include <deque>
 
 class Reassembler
 {
@@ -33,6 +34,8 @@ public:
   // How many bytes are stored in the Reassembler itself?
   uint64_t bytes_pending() const;
 
+  uint64_t first_unacceptable_index() const;
+
   // Access output stream reader
   Reader& reader() { return output_.reader(); }
   const Reader& reader() const { return output_.reader(); }
@@ -42,4 +45,8 @@ public:
 
 private:
   ByteStream output_; // the Reassembler writes to this ByteStream
+  std::deque<std::pair<char, bool>> buf_ {};
+  uint64_t bytes_pending_ { 0 };
+  uint64_t first_unassembled_index_ { 0 };
+  uint64_t eof_index_ { (uint64_t)-1 };
 };
