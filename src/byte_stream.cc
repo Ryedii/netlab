@@ -11,11 +11,12 @@ bool Writer::is_closed() const
 
 void Writer::push( string data )
 {
-  if ( has_error() || is_closed() ) {
+  if ( has_error() || is_closed() )
     return;
-  }
   uint64_t len = std::min( data.size(), available_capacity() );
-  buffer_.append( data.substr( 0, len ) );
+  if ( len == 0 )
+    return;
+  buf_.push( data.substr( 0, len ) );
   bytes_pushed_size_ += len;
 }
 
@@ -46,17 +47,25 @@ uint64_t Reader::bytes_popped() const
 
 string_view Reader::peek() const
 {
-  return this->buffer_;
+  return buf_.empty() ? std::string_view() : std::string_view { buf_.front() }.substr( popped_prefix_size_ );
 }
 
 void Reader::pop( uint64_t len )
 {
-  if ( has_error() ) {
+  if ( has_error() )
     return;
-  }
   len = std::min( len, bytes_buffered() );
-  buffer_.erase( 0, len );
   bytes_popped_size_ += len;
+  while ( len ) {
+    if ( popped_prefix_size_ + len < buf_.front().size() ) {
+      popped_prefix_size_ += len;
+      len = 0;
+    } else {
+      len -= buf_.front().size() - popped_prefix_size_;
+      popped_prefix_size_ = 0;
+      buf_.pop();
+    }
+  }
 }
 
 uint64_t Reader::bytes_buffered() const

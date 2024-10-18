@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <queue>
 #include <string>
 #include <string_view>
 
@@ -26,7 +27,8 @@ protected:
   uint64_t capacity_;
   bool error_ {};
 
-  std::string buffer_ {};
+  std::queue<std::string> buf_ {};
+  uint64_t popped_prefix_size_ {};
   uint64_t bytes_pushed_size_ {}, bytes_popped_size_ {};
   bool is_closed_ {};
 };
