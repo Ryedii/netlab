@@ -17,13 +17,12 @@ void TCPSender::push( const TransmitFunction& transmit )
 {
   uint64_t real_window_size_ = window_size_ > 0 ? window_size_ : 1;
   while ( outstanding_bytes_ < real_window_size_ && !is_sent_FIN_ ) {
-    TCPSenderMessage msg;
+    TCPSenderMessage msg = make_empty_message();
     if ( !is_sent_SYN_ ) {
       msg.SYN = true;
       is_sent_SYN_ = true;
-      msg.seqno = isn_;
-    } else
-      msg.seqno = Wrap32::wrap( abs_seqno_, isn_ );
+    }
+
     if ( reader().has_error() ) {
       msg.RST = true;
       transmit( msg );
