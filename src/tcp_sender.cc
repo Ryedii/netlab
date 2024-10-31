@@ -34,12 +34,12 @@ void TCPSender::push( const TransmitFunction& transmit )
     payload_size = std::min( payload_size, real_window_size_ - outstanding_bytes_ - msg.SYN );
     read( input_.reader(), payload_size, msg.payload );
 
-    if ( reader().is_finished() && payload_size + msg.SYN < real_window_size_ - outstanding_bytes_ ) {
+    if ( reader().is_finished() && msg.sequence_length() < real_window_size_ - outstanding_bytes_ ) {
       msg.FIN = true;
       is_sent_FIN_ = true;
     }
 
-    if ( msg.sequence_length() == 0 && msg.SYN == false && msg.FIN == false )
+    if ( msg.sequence_length() == 0 )
       return;
     transmit( msg );
     is_start_timer_ = true;
@@ -61,6 +61,8 @@ TCPSenderMessage TCPSender::make_empty_message() const
 void TCPSender::receive( const TCPReceiverMessage& msg )
 {
   window_size_ = msg.window_size;
+  if ( msg.RST )
+    input_.set_error();
   if ( msg.ackno.has_value() ) {
     uint64_t abs_ackno = msg.ackno.value().unwrap( isn_, abs_seqno_ );
     if ( abs_ackno > abs_seqno_ )
@@ -78,9 +80,6 @@ void TCPSender::receive( const TCPReceiverMessage& msg )
       is_start_timer_ = false;
     else
       is_start_timer_ = true;
-  } else {
-    if ( window_size_ == 0 )
-      input_.set_error();
   }
 }
 
