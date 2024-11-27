@@ -105,12 +105,12 @@ private:
   // Datagrams that have been received
   std::queue<InternetDatagram> datagrams_received_ {};
 
-  struct mapping_table_value_t
+  struct ip2ethernet_value_t
   {
     EthernetAddress ethernet_address;
     size_t timer;
   };
-  std::unordered_map<uint32_t, mapping_table_value_t> mapping_table_ {};
+  std::unordered_map<uint32_t, ip2ethernet_value_t> ip2ethernet {};
   std::unordered_map<uint32_t, size_t> arp_request_timer {};
-  std::unordered_multimap<uint32_t, InternetDatagram> dgrams_unreplied_ {};
+  std::unordered_multimap<uint32_t, InternetDatagram> datagrams_unsent_ {};
 };

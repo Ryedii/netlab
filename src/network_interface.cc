@@ -28,9 +28,9 @@ NetworkInterface::NetworkInterface( string_view name,
 void NetworkInterface::send_datagram( const InternetDatagram& dgram, const Address& next_hop )
 {
   const uint32_t target_ip = next_hop.ipv4_numeric();
-  auto iter = mapping_table_.find( target_ip );
-  if ( iter == mapping_table_.end() ) {
-    dgrams_unreplied_.emplace( target_ip, dgram );
+  auto iter = ip2ethernet.find( target_ip );
+  if ( iter == ip2ethernet.end() ) {
+    datagrams_unsent_.emplace( target_ip, dgram );
     if ( arp_request_timer.find( target_ip ) == arp_request_timer.end() ) {
       transmit( make_frame( EthernetHeader::TYPE_ARP,
                             serialize( make_arp_message( ARPMessage::OPCODE_REQUEST, target_ip ) ) ) );
@@ -47,17 +47,17 @@ void NetworkInterface::recv_frame( const EthernetFrame& frame )
     return;
 
   if ( frame.header.type == EthernetHeader::TYPE_IPv4 ) {
-    InternetDatagram ip_dgram;
-    if ( parse( ip_dgram, frame.payload ) )
-      datagrams_received_.emplace( move( ip_dgram ) );
+    InternetDatagram dgram;
+    if ( parse( dgram, frame.payload ) )
+      datagrams_received_.emplace( move( dgram ) );
   }
 
   if ( frame.header.type == EthernetHeader::TYPE_ARP ) {
     ARPMessage arp_msg;
     if ( !parse( arp_msg, frame.payload ) )
       return;
-    mapping_table_value_t mtv = {.ethernet_address=arp_msg.sender_ethernet_address, .timer=0};
-    mapping_table_.insert_or_assign( arp_msg.sender_ip_address, mtv );
+    ip2ethernet_value_t mtv = {.ethernet_address=arp_msg.sender_ethernet_address, .timer=0};
+    ip2ethernet.insert_or_assign( arp_msg.sender_ip_address, mtv );
 
     if ( arp_msg.opcode == ARPMessage::OPCODE_REQUEST ) {
       if ( arp_msg.target_ip_address == ip_address_.ipv4_numeric() )
@@ -69,11 +69,11 @@ void NetworkInterface::recv_frame( const EthernetFrame& frame )
     }
 
     if ( arp_msg.opcode == ARPMessage::OPCODE_REPLY ) {
-      auto range = dgrams_unreplied_.equal_range( arp_msg.sender_ip_address );
+      auto range = datagrams_unsent_.equal_range( arp_msg.sender_ip_address );
       for ( auto iter = range.first; iter != range.second; ++iter )
         transmit(
           make_frame( EthernetHeader::TYPE_IPv4, serialize( iter->second ), arp_msg.sender_ethernet_address ) );
-      dgrams_unreplied_.erase( arp_msg.sender_ip_address );
+      datagrams_unsent_.erase( arp_msg.sender_ip_address );
     }
   }
 }
@@ -82,10 +82,10 @@ void NetworkInterface::recv_frame( const EthernetFrame& frame )
 void NetworkInterface::tick( const size_t ms_since_last_tick )
 {
   constexpr size_t ms_mappings_ttl = 30000, ms_resend_arp = 5000;
-  for ( auto iter = mapping_table_.begin(); iter != mapping_table_.end(); ) {
+  for ( auto iter = ip2ethernet.begin(); iter != ip2ethernet.end(); ) {
     iter->second.timer += ms_since_last_tick;
     if ( iter->second.timer >= ms_mappings_ttl )
-      iter = mapping_table_.erase( iter );
+      iter = ip2ethernet.erase( iter );
     else
       ++iter;
   }
