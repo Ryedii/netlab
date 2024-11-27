@@ -1,6 +1,8 @@
 #pragma once
 
+#include <optional>
 #include <queue>
+#include <unordered_map>
 
 #include "address.hh"
 #include "ethernet_frame.hh"
@@ -73,6 +75,27 @@ private:
   std::shared_ptr<OutputPort> port_;
   void transmit( const EthernetFrame& frame ) const { port_->transmit( *this, frame ); }
 
+  EthernetFrame make_frame( const uint16_t protocol,
+                            std::vector<std::string> payload,
+                            std::optional<EthernetAddress> dst = std::nullopt ) const
+  {
+    return { .header { .dst = dst.has_value() ? move( *dst ) : ETHERNET_BROADCAST,
+                       .src = ethernet_address_,
+                       .type = protocol },
+             .payload = move( payload ) };
+  }
+
+  ARPMessage make_arp_message( const uint16_t option,
+                               const uint32_t target_ip,
+                               std::optional<EthernetAddress> target_ether = std::nullopt ) const
+  {
+    return { .opcode = option,
+             .sender_ethernet_address = ethernet_address_,
+             .sender_ip_address = ip_address_.ipv4_numeric(),
+             .target_ethernet_address = target_ether.has_value() ? move( *target_ether ) : EthernetAddress {},
+             .target_ip_address = target_ip };
+  }
+
   // Ethernet (known as hardware, network-access-layer, or link-layer) address of the interface
   EthernetAddress ethernet_address_;
 
@@ -81,4 +104,13 @@ private:
 
   // Datagrams that have been received
   std::queue<InternetDatagram> datagrams_received_ {};
+
+  struct mapping_table_value_t
+  {
+    EthernetAddress ethernet_address;
+    size_t timer;
+  };
+  std::unordered_map<uint32_t, mapping_table_value_t> mapping_table_ {};
+  std::unordered_map<uint32_t, size_t> arp_request_timer {};
+  std::unordered_multimap<uint32_t, InternetDatagram> dgrams_unreplied_ {};
 };
