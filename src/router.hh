@@ -1,10 +1,10 @@
 #pragma once
 
-#include <memory>
-#include <optional>
-
 #include "exception.hh"
 #include "network_interface.hh"
+#include <map>
+#include <memory>
+#include <optional>
 
 // \brief A router that has multiple network interfaces and
 // performs longest-prefix-match routing between them.
@@ -35,4 +35,12 @@ public:
 private:
   // The router's collection of network interfaces
   std::vector<std::shared_ptr<NetworkInterface>> _interfaces {};
+
+  struct adr_prefix
+  {
+    uint32_t mask, subnet;
+    auto operator<=>( const adr_prefix& e ) const { return mask != e.mask ? mask <=> e.mask : subnet <=> e.subnet; }
+  };
+  std::multimap<adr_prefix, size_t, std::greater<adr_prefix>> route_table_ {};
+  std::map<size_t, std::optional<Address>> hop_table_ {};
 };

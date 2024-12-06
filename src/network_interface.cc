@@ -56,7 +56,7 @@ void NetworkInterface::recv_frame( const EthernetFrame& frame )
     ARPMessage arp_msg;
     if ( !parse( arp_msg, frame.payload ) )
       return;
-    ip2ethernet_value_t mtv = {.ethernet_address=arp_msg.sender_ethernet_address, .timer=0};
+    ip2ethernet_value_t mtv = { .ethernet_address = arp_msg.sender_ethernet_address, .timer = 0 };
     ip2ethernet.insert_or_assign( arp_msg.sender_ip_address, mtv );
 
     if ( arp_msg.opcode == ARPMessage::OPCODE_REQUEST ) {
