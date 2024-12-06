@@ -50,19 +50,4 @@ void Router::route()
       dgrams.pop();
     }
   }
-
-  // for ( auto& interface : _interfaces ) {
-  //   auto& dgrams = interface->datagrams_received();
-  //   for ( auto& dgram : dgrams ) {
-  //     auto hdr_dst = dgram.header.dst;
-  //     auto iter = ranges::find_if( router_table_, [&hdr_dst]( const auto& item ) -> bool {
-  //       return ( hdr_dst & item.first.mask ) == item.first.netid;
-  //     } );
-  //     --dgram.header.ttl;
-  //     dgram.header.compute_checksum();
-  //     const auto& [interface_num, net_addr] = iter->second;
-  //     interface( interface_num )
-  //       .send_datagram( dgram, net_addr.has_value() ? *net_addr : Address::from_ipv4_numeric( hdr_dst ) );
-  //   }
-  // }
 }
